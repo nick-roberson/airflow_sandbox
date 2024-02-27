@@ -1,31 +1,8 @@
-#
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-from __future__ import annotations
-
-# [START tutorial]
-# [START import_module]
 import json
-
 import pendulum
 
 from airflow.decorators import dag, task
-
-# [END import_module]
+from __future__ import annotations
 
 
 # [START instantiate_dag]
@@ -46,7 +23,7 @@ def sample_etl():
     """
     # [END instantiate_dag]
 
-    # [START extract]
+    # 1 - [START extract]
     @task()
     def extract():
         """
@@ -62,7 +39,7 @@ def sample_etl():
 
     # [END extract]
 
-    # [START transform]
+    # 2 - [START transform]
     @task(multiple_outputs=True)
     def transform(order_data_dict: dict):
         """
@@ -79,7 +56,7 @@ def sample_etl():
 
     # [END transform]
 
-    # [START load]
+    # 3 - [START load]
     @task()
     def load(total_order_value: float):
         """
@@ -92,15 +69,11 @@ def sample_etl():
 
     # [END load]
 
-    # [START main_flow]
+    # 4 - [START main_flow]
     order_data = extract()
     order_summary = transform(order_data)
     load(order_summary["total_order_value"])
     # [END main_flow]
 
 
-# [START dag_invocation]
 sample_etl()
-# [END dag_invocation]
-
-# [END tutorial]
