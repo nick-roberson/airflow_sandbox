@@ -1,18 +1,27 @@
-import json
-import pendulum
-
-from airflow.decorators import dag, task
 from __future__ import annotations
 
+import os
+import logging
 
-# [START instantiate_dag]
+import pendulum
+import pandas as pd
+
+from typing import Dict
+from airflow.decorators import dag, task
+
+
+INCOME_CSV = "dags/data/income.csv"
+
+logger = logging.getLogger(__name__)
+
+
 @dag(
     schedule=None,
     start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
     catchup=False,
     tags=["example"],
 )
-def sample_etl():
+def sample_etl(file_path: str = INCOME_CSV):
     """
     ### TaskFlow API Tutorial Documentation
     This is a simple data pipeline example which demonstrates the use of
@@ -21,59 +30,52 @@ def sample_etl():
     located
     [here](https://airflow.apache.org/docs/apache-airflow/stable/tutorial_taskflow_api.html)
     """
-    # [END instantiate_dag]
 
-    # 1 - [START extract]
     @task()
-    def extract():
+    def extract(file_path: str) -> Dict:
         """
         #### Extract task
         A simple Extract task to get data ready for the rest of the data
         pipeline. In this case, getting data is simulated by reading from a
         hardcoded JSON string.
         """
-        data_string = '{"1001": 301.27, "1002": 433.21, "1003": 502.22}'
+        # check contents of file
+        if not os.path.exists(file_path):
+            raise ValueError(f"File does not exist at path {file_path}")
 
-        order_data_dict = json.loads(data_string)
-        return order_data_dict
+        # load data into a dataframe
+        df = pd.read_csv(file_path)
 
-    # [END extract]
+        # show some basic info about the dataframe
+        logger.info(f"DataFrame: {df.info()}")
 
-    # 2 - [START transform]
+        # return list of dictionaries
+        income_data = df.to_dict(orient="records")
+        return income_data
+
     @task(multiple_outputs=True)
-    def transform(order_data_dict: dict):
+    def transform(income_data: Dict):
         """
         #### Transform task
         A simple Transform task which takes in the collection of order data and
         computes the total order value.
         """
-        total_order_value = 0
+        if len(income_data) == 0:
+            raise ValueError("No data present")
 
-        for value in order_data_dict.values():
-            total_order_value += value
+        # TODO: Do some basic processing
 
-        return {"total_order_value": total_order_value}
+        return income_data
 
-    # [END transform]
-
-    # 3 - [START load]
     @task()
-    def load(total_order_value: float):
+    def load(income_data: Dict):
         """
         #### Load task
         A simple Load task which takes in the result of the Transform task and
         instead of saving it to end user review, just prints it out.
         """
+        print(f"Total number of values in list {len(income_data)}")
 
-        print(f"Total order value is: {total_order_value:.2f}")
-
-    # [END load]
-
-    # 4 - [START main_flow]
-    order_data = extract()
-    order_summary = transform(order_data)
-    load(order_summary["total_order_value"])
-    # [END main_flow]
-
-
-sample_etl()
+    income_data = extract(file_path=file_path)
+    income_data = transform(income_data=income_data)
+    load(income_data=income_data)
